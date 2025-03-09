@@ -1,0 +1,243 @@
+[manifest]
+version = "1.0.0"
+dump_lua = true
+priority = 0
+
+
+# glorious leader scoring effect calculation
+
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = "-- TARGET: main scoring on played cards"
+position = 'after'
+payload = '''
+
+
+            ret.chairman = card:glorious_modifier(context)
+
+
+'''
+match_indent = true
+
+
+# executed condition (for glorious leader challenge) (basically like debuffed)
+
+[[patches]]
+[patches.regex]
+target = 'card.lua'
+pattern = 'function Card:calculate_joker\(context\)'
+position = 'after'
+payload = '''
+
+if self.executed then return nil end
+
+'''
+match_indent = true
+
+
+
+# unsellable joker condition
+
+[[patches]]
+[patches.regex]
+target = 'card.lua'
+pattern = 'function Card:can_sell_card\(context\)'
+position = 'after'
+payload = '''
+
+if (self.ability and self.ability.unsellable) then return false end
+
+'''
+match_indent = true
+
+
+
+# Web Surfer debuff repeat hands
+[[patches]]
+[patches.regex]
+target = 'blind.lua'
+pattern = '''elseif self\.name == \'The Mouth\' then'''
+position = 'before'
+payload = '''elseif G.GAME.modifiers.always_the_eye then
+            if self.hands[handname] then
+                self.triggered = true
+                return true
+            end
+            if not check then
+
+            self.hands[handname] = true
+
+            
+
+
+            end
+'''
+match_indent = true
+
+
+# resets web surfer challenge every blind
+[[patches]]
+[patches.regex]
+target = 'blind.lua'
+pattern = '''elseif self\.name == \'The Mouth\' and not reset then'''
+position = 'before'
+payload = '''elseif G.GAME.modifiers.always_the_eye and not reset then
+        self.hands = {
+            ["Flush Five"] = false,
+            ["Flush House"] = false,
+            ["Five of a Kind"] = false,
+            ["Straight Flush"] = false,
+            ["Four of a Kind"] = false,
+            ["Full House"] = false,
+            ["Flush"] = false,
+            ["Straight"] = false,
+            ["Three of a Kind"] = false,
+            ["Two Pair"] = false,
+            ["Pair"] = false,
+            ["High Card"] = false,
+        }
+'''
+match_indent = true
+
+# resets web search if it's hand was played EVEN if it's debuffed
+[[patches]]
+[patches.regex]
+target = 'functions/state_events.lua'
+pattern = '''play_area_status_text\(\"Not Allowed!\"\)'''
+position = 'before'
+payload = '''
+
+    if G.GAME.modifiers.always_the_eye and text == G.GAME.current_round.web_search_hand then
+                web_search_refresh(false)
+    end
+
+'''
+match_indent = true
+
+
+# blind floating text override
+[[patches]]
+[patches.regex]
+target = 'game.lua'
+pattern = '''G.GAME.blind:get_loc_debuff_text()'''
+position = 'before'
+payload = '''(G.GAME.modifiers.always_the_eye and "No repeat hand types this round") or '''
+match_indent = true
+
+
+
+# hollywood debt - add debt in cashout
+[[patches]]
+[patches.regex]
+target = 'functions/state_events.lua'
+pattern = '''for i = 1\, #G\.GAME\.tags do'''
+position = 'before'
+payload = '''
+
+if(G.GAME.modifiers.jimbo_debt and G.GAME.blind.boss) then
+        add_round_eval_row({dollars = -1 * G.GAME.modifiers.jimbo_debt, bonus = true, name='debt', card = SMODS.find_card("j_korczak_animation", true)[1], pitch = pitch})
+        pitch = pitch + 0.06
+        dollars = dollars + -1 * G.GAME.modifiers.jimbo_debt
+end
+
+
+'''
+match_indent = true
+
+
+
+# hollywood debt - shrink dollars because they are too big
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = '''\(num_dollars >'''
+position = 'at'
+payload = "(math.abs(num_dollars) >"
+match_indent = true
+
+
+
+# hollywood debt - add cashout title
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = '''elseif config\.name == 'interest' then'''
+position = 'before'
+payload = '''
+
+                elseif config.name == 'debt' then
+                    table.insert(left_text,{n=G.UIT.O, config={object = DynaText({string = {get_animation_quip()}, colours = {G.C.RED}, shadow = true,  float = true, pop_in = 0, scale = 0.6*scale, silent = true})}})
+
+
+'''
+match_indent = true
+
+
+
+# change cryptid to deafult spectral
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = '''"c_incantation"'''
+position = 'at'
+payload = '''
+
+((G.GAME.modifiers.cryptid_hungry and 'c_cryptid') or "c_incantation")
+
+'''
+match_indent = true
+
+
+
+
+
+# challenge screen, shrink boss blind icons to fit more than 4
+[[patches]]
+[patches.regex]
+target = 'functions/UI_definitions.lua'
+pattern = 'AnimatedSprite\(0\,0\,1\,1'
+position = 'at'
+payload = "AnimatedSprite(0,0,1.1 - 0.25*(math.sqrt(#challenge.restrictions.banned_other)),1.1 - 0.25*(math.sqrt(#challenge.restrictions.banned_other))"
+match_indent = true
+
+
+# internship gimmicks
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = '-- TARGET: evaluate your own general effects'
+position = 'after'
+payload = '''
+
+    if
+    card.ability.set == 'Joker' and
+    context.end_of_round and not context.repetition and not context.individual and
+    G.GAME.modifiers.ceo_rental and
+    not( G.GAME.modifiers.shopkeep_negate and card.ability.ceo_approved ) then
+
+        local money_for_rarity = (card.config.center.rarity == 1) and 1 or 3
+        ease_dollars(-money_for_rarity)
+        card_eval_status_text(card, 'dollars', -money_for_rarity)
+    end
+
+'''
+match_indent = true
+
+
+# CEO approved badge
+[[patches]]
+[patches.regex]
+target = 'functions/UI_definitions.lua'
+pattern = 'if AUT.info then'
+position = 'before'
+payload = '''
+
+    if
+    ( G.GAME.modifiers.shopkeep_negate and card.ability and card.ability.ceo_approved ) then 
+        badges[#badges + 1] = create_badge("CEO Approved!", G.C.MONEY)
+    end
+
+'''
+match_indent = true
+

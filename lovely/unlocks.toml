@@ -1,0 +1,142 @@
+[manifest]
+version = "1.0.0"
+dump_lua = true
+priority = 0
+
+
+# D20 reroll check
+
+[[patches]]
+[patches.regex]
+target = 'functions/button_callbacks.lua'
+pattern = 'if G.GAME.current_round.reroll_cost > 0 then'
+position = "after"
+payload = '''
+
+G.GAME.current_round.spent_on_rerolls = G.GAME.current_round.spent_on_rerolls + G.GAME.current_round.reroll_cost
+check_for_unlock({type = 'spend_on_reroll'})
+'''
+match_indent = true
+
+# shopkeep when selling joker
+
+[[patches]]
+[patches.regex]
+target = 'functions/button_callbacks.lua'
+pattern = 'G.GAME.current_round.jokers_purchased = 0'
+position = "after"
+payload = '''
+G.GAME.current_round.jokers_bought_then_sold = 0
+'''
+match_indent = true
+
+[[patches]]
+[patches.regex]
+target = 'functions/button_callbacks.lua'
+pattern = 'card:sell_card\(\)'
+position = "after"
+payload = '''
+
+if(card.ability and card.ability.set and G.GAME.current_round.jokers_purchased > 0 and G.GAME.current_round.jokers_purchased > G.GAME.current_round.jokers_bought_then_sold) then
+G.GAME.current_round.jokers_bought_then_sold = G.GAME.current_round.jokers_bought_then_sold + 1
+check_for_unlock({type = 'bought_then_sold_jokers'})
+end
+
+'''
+match_indent = true
+
+# animation repetition check
+
+
+[[patches]]
+[patches.regex]
+target = '=[SMODS _ "src/utils.lua"]'
+pattern = "while j <= #reps do"
+position = 'after'
+payload = '''
+
+check_for_unlock({type = 'repetitions_check', amount = #reps})
+
+'''
+match_indent = true
+
+
+
+# ceo (if joker was dissolved in joker area)
+
+
+
+[[patches]]
+[patches.regex]
+target = 'card.lua'
+pattern = '''function Card:start_dissolve\(dissolve_colours\, silent\, dissolve_time_fac\, no_juice\)'''
+position = 'after'
+payload = '''
+if(not(G.CONTROLLER.locks.selling_card) and self.area and self.area == G.jokers) then
+check_for_unlock({type = 'card_destroyed', card = self})
+end
+'''
+match_indent = true
+
+# paladin
+
+[[patches]]
+[patches.regex]
+target = 'cardarea.lua'
+pattern = '''if self == G\.deck then check_for_unlock\(\{type = 'modify_deck'\, deck = self\}\) end'''
+position = 'after'
+payload = '''
+
+if self == G.consumeables then check_for_unlock({type = 'add_consumable', holding = self}) end
+'''
+match_indent = true
+
+
+# exhibit in_pool 1
+
+[[patches]]
+[patches.regex]
+target = 'card.lua'
+pattern = 'ease_dollars\([^-]'
+position = 'before'
+payload = '''
+
+if(not(G.CONTROLLER.locks.selling_card)) then
+G.GAME.current_round.tarot_money = true
+end
+
+'''
+match_indent = true
+
+# exhibit 2
+
+[[patches]]
+[patches.regex]
+target = '=[SMODS _ "src/utils.lua"]'
+pattern = 'ease_dollars\(amount\)'
+position = 'before'
+payload = '''
+
+G.GAME.current_round.tarot_money = true
+
+'''
+match_indent = true
+
+
+
+# exhibit 3
+
+[[patches]]
+[patches.regex]
+target = 'functions/state_events.lua'
+pattern = 'calculate_dollar_bonus\(\)'
+position = 'after'
+payload = '''
+
+if ret and ret > 0 then
+    G.GAME.current_round.tarot_money = true
+end
+
+'''
+match_indent = true
+

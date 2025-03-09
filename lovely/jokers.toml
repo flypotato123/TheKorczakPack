@@ -1,0 +1,187 @@
+[manifest]
+version = "1.0.0"
+dump_lua = true
+priority = 0
+
+
+# shopkeep
+
+[[patches]]
+[patches.pattern]
+target = 'game.lua'
+pattern = '''for i = 1, #G.GAME.tags do
+                                            G.GAME.tags[i]:apply_to_run({type = 'shop_final_pass'})
+                                        end'''
+position = "after"
+payload = '''
+
+SMODS.calculate_context({setting_shop = true})
+
+'''
+match_indent = true
+
+# wheel of fortune (for grease monkey in_pool)
+
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+pattern = "elseif self.ability.name == 'The Wheel of Fortune' then"
+position = "after"
+payload = '''
+
+G.GAME.current_round.lets_go_gambling = true
+'''
+match_indent = true
+
+# aura (for grease monkey)
+
+
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+pattern = "local aura_card = G.hand.highlighted[1]"
+position = "after"
+payload = '''
+
+G.GAME.current_round.lets_go_gambling = true
+'''
+match_indent = true
+
+# immolate ability
+
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+pattern = "elseif self.ability.name == 'Immolate' then"
+position = "after"
+payload = '''
+self.ability.extra.dollars = self.ability.extra.dollars * 2^(#SMODS.find_card("j_korczak_exhibit"))
+'''
+match_indent = true
+
+# immolate description
+
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = 'extra.dollars'
+position = 'at'
+payload = 'extra.dollars * 2^(#SMODS.find_card("j_korczak_exhibit"))'
+match_indent = true
+
+
+# temperance ability
+
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+pattern = 'self.ability.money = math.min(self.ability.money, self.ability.extra)'
+position = "at"
+payload ='self.ability.money = math.min(self.ability.money, self.ability.extra) * 2^(#SMODS.find_card("j_korczak_exhibit"))'
+match_indent = true
+
+# exhibit unlock (im unsure?)
+
+[[patches]]
+[patches.regex]
+target = 'card.lua'
+pattern = '''    if self\.ability\.name == 'Temperance' then
+        G\.E_MANAGER:add_event\(Event\(\{trigger = 'after'\, delay = 0\.4, func = function\(\)'''
+position = 'after'
+payload = '''
+
+check_for_unlock({type = 'tempererance', amount = self.ability.money})
+
+'''
+match_indent = true
+
+
+
+# temperance description
+
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = 'cfg.extra, math.min\(cfg.extra, _money\)'
+position = 'at'
+payload = 'cfg.extra * 2^(#SMODS.find_card("j_korczak_exhibit")), math.min(cfg.extra, _money) * 2^(#SMODS.find_card("j_korczak_exhibit"))'
+match_indent = true
+
+# hermit
+
+[[patches]]
+[patches.pattern]
+target = 'card.lua'
+pattern = 'ease_dollars(math.max(0,math.min(G.GAME.dollars, self.ability.extra)), true)'
+position = "at"
+payload = '''
+ease_dollars(math.max(0,math.min(G.GAME.dollars, self.ability.extra) * 2^(#SMODS.find_card("j_korczak_exhibit"))), true)'''
+match_indent = true
+
+# hermit description
+
+[[patches]]
+[patches.regex]
+target = 'functions/common_events.lua'
+pattern = '"The Hermit" then loc_vars = \{cfg.extra\}'
+position = 'at'
+payload = '''"The Hermit" then 
+
+local fancy_names = {"Doubles money","Triples money","Quintuples money","Noncuples money"}
+
+loc_vars = {cfg.extra * 2^(#SMODS.find_card("j_korczak_exhibit")), fancy_names[1+#SMODS.find_card("j_korczak_exhibit")] or ("Multiplies money by "..1+(2^(#SMODS.find_card("j_korczak_exhibit"))))}'''
+match_indent = true
+
+
+
+# buffer retrigger reptition context
+
+[[patches]]
+[patches.regex]
+target = '=[SMODS _ "src/utils.lua"]'
+pattern = 'for i=1, rt do'
+position = 'before'
+payload = '''
+if( h == value.repetitions ) then
+for jj=1, #(area.cards) do
+
+
+local eval2, post2 = eval_card((area.cards)[jj], {post_trigger_repetition = true, cardarea = G.jokers, other_card = _card, other_context = context})
+if next(post2) then SMODS.trigger_effects({post2}, card) end
+
+for key2, value2 in pairs(eval2) do
+                if value2.repetitions and key2 ~= 'retriggers' then
+
+                    for hh=1, value2.repetitions do
+                        value2.card = (area.cards)[jj]
+                        value2.message = value2.message or (not value2.remove_default_message and localize('k_again_ex'))
+                        reps[#reps+1] = {key2 = value2}
+                    end
+                end
+            end
+end
+end
+'''
+match_indent = true
+
+
+# shopkeep weights
+
+[[patches]]
+[patches.regex]
+target = '=[SMODS _ "src/game_object.lua"]'
+pattern = 'return weight'
+position = 'at'
+payload = '''
+return weight *
+(
+(G.STATE == G.STATES.SHOP and (self.key == 'Rare' or self.key == 'Uncommon')) and
+(
+G.shop_keep_ucommon_and_rares_promotion_rate ^ #SMODS.find_card("j_korczak_shopkeep")
+
+)
+or
+1
+)
+'''
+match_indent = true
