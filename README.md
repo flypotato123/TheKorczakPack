@@ -1,5 +1,6 @@
 # The Korczak Pack - Balatro Fan Expansion Mod
 By [Flypotato](https://x.com/Flypotato123) and [HyperKorczak](https://korczak.newgrounds.com/) 
+<br/>
 [Watch the Trailer!](https://www.youtube.com/watch?v=RiZIK6EUdR0&pp=ygUTYmFsYXRybyBtb2Qga29yY3phaw%3D%3D)
 <div align="center">
     <img src="https://github.com/user-attachments/assets/62afad10-9ae2-47ea-9fe4-be176847267a" alt="The Korczak Pack"/>
