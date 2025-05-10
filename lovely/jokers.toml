@@ -185,3 +185,17 @@ or
 )
 '''
 match_indent = true
+# AUYS context
+
+[[patches]]
+[patches.regex]
+target = 'functions/button_callbacks.lua'
+pattern = '''playing_card_joker_effects\(\{card\}\)'''
+position = 'after'
+payload = '''
+
+        SMODS.calculate_context({booster_card_added = true})
+
+'''
+match_indent = true
+

@@ -3,7 +3,7 @@
 --- MOD_ID: KorczakPack
 --- MOD_AUTHOR: [Korczak & Flypotato]
 --- LOADER_VERSION_GEQ: 1.0.0
---- VERSION: 1.0.0
+--- VERSION: 1.1.0
 --- MOD_DESCRIPTION: A collection of Jokers concocted by HyperKorczak and brought to life by Flypotato.
 --- PREFIX: korczak
 --- PRIORITY: 19974
@@ -94,6 +94,7 @@ end
     local ret = igo(self)
     ret.current_round.duraksuit = 'Spades'
     ret.current_round.chairman_card =  {rank = 'Ace'}
+    ret.current_round.xmarks_card =  {rank = 'Ace'}
     ret.current_round.chairman_mult = 10
 
     
@@ -119,6 +120,37 @@ end
 
     if(run_start) then
 
+      -- bans all non-vanilla cards in challenges
+      if(G.GAME.challenge and string.len(G.GAME.challenge)>=10 and string.sub(G.GAME.challenge,1,10) == "c_korczak_") then
+        
+        for k,v in pairs(G.P_CENTERS) do
+
+          if v.set == 'Voucher' then
+
+            sendDebugMessage(tprint(v))
+
+          end
+
+          if v.mod and v.mod.id ~= "KorczakPack" then
+            G.GAME.banned_keys[k] = true
+          end
+        end
+        for k,v in pairs(G.P_BLINDS) do
+          if v.mod and v.mod.id ~= "KorczakPack" then
+            G.GAME.banned_keys[k] = true
+          end
+        end
+        for k,v in pairs(G.P_TAGS) do
+          if v.mod and v.mod.id ~= "KorczakPack" then
+            G.GAME.banned_keys[k] = true
+          end
+        end
+        
+        G.from_boss_tag = true
+        G.FUNCS.reroll_boss()
+      end
+
+
       G.GAME.current_round.spent_on_rerolls = 0
       G.GAME.current_round.jokers_bought_then_sold = 0
       G.GAME.current_round.jokers_destroyed = 0
@@ -142,7 +174,7 @@ end
       G.GAME.planet_rate = 0
       end
       
-      auys_refresh()
+      -- auys_refresh()
       G.GAME.modifiers.scaling = G.GAME.modifiers.blind_scaling or G.GAME.modifiers.scaling
 
         G.E_MANAGER:add_event(Event({
@@ -173,7 +205,9 @@ end
   local valid_durak_cards = {}
   for _, v in ipairs(G.playing_cards) do
     if not SMODS.has_no_suit(v) then -- Abstracted enhancement check for jokers being able to give cards additional enhancements
+
       valid_durak_cards[#valid_durak_cards+1] = v
+
     end
   end
   if valid_durak_cards[1] then 
@@ -191,7 +225,9 @@ end
   local valid_chairman_cards = {}
   for k, v in ipairs(G.playing_cards) do
       if v.ability.effect ~= 'Stone Card' then
+        if v.base.id > 0 then
           valid_chairman_cards[#valid_chairman_cards+1] = v
+        end
       end
   end
   if valid_chairman_cards[1] then 
@@ -227,7 +263,9 @@ end
     local valid_glorious_cards = {}
     for k, v in ipairs(G.playing_cards) do
       if v.ability.effect ~= 'Stone Card' then
+        if v.base.id > 0 then
         valid_glorious_cards[#valid_glorious_cards+1] = v
+        end
       end
     end
     if valid_glorious_cards[1] then 
@@ -271,10 +309,10 @@ end
 
 
   
-  G.GAME.current_round.encounter_card = {rank = '3'}
+  G.GAME.current_round.encounter_card = {rank = '3', suit = 'Spades'}
   local valid_encounter_cards = {}
   for k, v in ipairs(G.playing_cards) do
-      if v.ability.effect ~= 'Stone Card' then
+      if v.ability.effect ~= 'Stone Card' and v.base.id > 0 then
           valid_encounter_cards[#valid_encounter_cards+1] = v
       end
   end
@@ -295,7 +333,7 @@ end
     local valid_painter_cards = {}
     for _, v in ipairs(G.playing_cards) do
       if not SMODS.has_no_suit(v) then -- Abstracted enhancement check for jokers being able to give cards additional enhancements
-          valid_painter_cards[#valid_painter_cards+1] = v
+        valid_painter_cards[#valid_painter_cards+1] = v
       end
     end
     if valid_painter_cards[1] then 
@@ -334,6 +372,25 @@ end
 
   end
 
+  if run_start or G.GAME.blind.boss then
+
+  
+  G.GAME.current_round.xmarks_card = {rank = 'Ace'}
+  local valid_xmarks_cards = {}
+  for k, v in ipairs(G.playing_cards) do
+      if v.ability.effect ~= 'Stone Card' then
+        if v.base.id > 0 then
+          valid_xmarks_cards[#valid_xmarks_cards+1] = v
+        end
+      end
+  end
+  if valid_xmarks_cards[1] then 
+      local xmarks_card = pseudorandom_element(valid_xmarks_cards, pseudoseed('secret_rankx'..G.GAME.round_resets.ante))
+      G.GAME.current_round.xmarks_card.rank = xmarks_card.base.value
+      G.GAME.current_round.xmarks_card.id = xmarks_card.base.id
+    end
+
+  end
 
 
   -- kozer challange
@@ -433,7 +490,7 @@ end
     },
     },
     config = { extra = 6 },
-    rarity = 2,
+    rarity = 1,
     atlas = "korczak",
     blueprint_compat = true,
     pos = {x = 12, y = 2},
@@ -481,10 +538,10 @@ end
     atlas = "korczak",
     blueprint_compat = true,
     pos = {x = 17, y = 1},
-    cost = 5,
+    cost = 6,
     loc_vars = function(self, info_queue, card)
       return { vars= {
-        G.GAME.current_round.chairman_card.rank,
+        localize(G.GAME.current_round.chairman_card.rank, 'ranks'),
         G.GAME.current_round.chairman_mult
       } }
     end,
@@ -516,7 +573,7 @@ end
     },
     },
     config = { extra = 1 },
-    rarity = 2,
+    rarity = 1,
     atlas = "korczak",
     blueprint_compat = false,
     pos = {x = 17, y = 2},
@@ -686,21 +743,28 @@ end
             card:juice_up(0.3,0.3)
           end
 
+          local didit = false
+
           if other_joker.edition == nil then
             other_joker:set_edition("e_foil", true)
+            didit = true
           elseif other_joker.edition.foil then
             other_joker:set_edition("e_holo", true)
+            didit = true
           elseif(other_joker.edition.holo) then
             other_joker:set_edition("e_polychrome", true)
+            didit = true
           end
 
 
+          if(didit) then
           return(
             {
               message = (G.P_CENTERS["e_" .. other_joker.edition.type].name .. "!"),
               colour = G.C.SECONDARY_SET.Tarot
             }
           )
+        end
 
         else
 
@@ -782,11 +846,11 @@ end
         "({V:1}#1#{}, {V:2}#2#{}, {V:3}#3#{})",
     },
     },
-    rarity = 2,
+    rarity = 1,
     atlas = "korczak",
     blueprint_compat = false,
     pos = {x = 15, y = 1},
-    cost = 6,
+    cost = 5,
     loc_vars = function(self, info_queue, card)
 
       local vars = {}
@@ -810,7 +874,7 @@ end
             colours[i] = G.C.UI.TEXT_DARK
             else
             
-            vars[i] = G.deck.cards[l].config.card.name
+            vars[i] = localize(G.deck.cards[l].base.value, 'ranks') .. " of " .. localize(G.deck.cards[l].config.card.suit, 'suits_plural')
             colours[i] = G.C.SUITS[G.deck.cards[l].config.card.suit]
             end
 
@@ -935,7 +999,7 @@ end
       },
     },
     config = { extra = { rank_id = 2, money = 2} },
-    rarity = 2,
+    rarity = 1,
     atlas = "korczak",
     blueprint_compat = true,
     pos = {x = 14, y = 1},
@@ -1033,7 +1097,7 @@ end
       if context.individual and context.cardarea == G.play and not context.blueprint_card then
 
         if context.other_card.ability.effect ~= 'Stone Card' and not context.other_card.debuff then
-          card.ability.mult = card.ability.mult + (tonumber(context.other_card.base.value) and context.other_card.base.value or 0)
+          card.ability.mult = card.ability.mult + (localize(context.other_card.base.value, 'ranks') and tonumber(localize(context.other_card.base.value, 'ranks')) or 0)
         end
       end
 
@@ -1112,10 +1176,13 @@ end
       name = 'Graffiti',
       text=
       {
-        "Once per round, adds a copy of the {C:attention}last chosen card",
-        "you used {C:spades}The World{}, {C:hearts}The Sun{}, {C:clubs}The Moon{} or {C:diamonds}The Star",
-        "on to your {C:attention}deck{} at {C:attention}the end of the shop",
-        "{C:inactive}(Currently {V:1}#1#{C:inactive}){}"
+        "Adds a copy of a {C:attention}random",
+        "{C:attention}affected card{} to your {C:attention}deck",
+        "when using a {C:attention}Suit converting{} {C:tarot}Tarot{} card"
+        -- "Once per round, adds a copy of the {C:attention}last chosen card",
+        -- "you used a {C:tarot}suit converting card",
+        -- "on to your {C:attention}deck{} at {C:attention}the end of the shop",
+        -- "{C:inactive}(Currently {V:1}#1#{C:inactive}){}"
     },
     },
     config = { extra = {} },
@@ -1127,89 +1194,122 @@ end
     loc_vars = function(self, info_queue, card)
       return { vars= {
         
-        G.GAME.current_round.graffiti_drip and(
-        G.GAME.current_round.graffiti_drip.ability.effect == 'Stone Card' and 'Stone Card'
+      --   G.GAME.current_round.graffiti_drip and(
+      --   G.GAME.current_round.graffiti_drip.ability.effect == 'Stone Card' and 'Stone Card'
         
-        or G.P_CARDS[G.GAME.current_round.graffiti_drip.save_fields.card].name
-      )
-        or "None",
-        colours = {
-          G.GAME.current_round.graffiti_drip and(
-          G.GAME.current_round.graffiti_drip.ability.effect == 'Stone Card' and G.C.UI.TEXT_DARK
-          or G.C.SUITS[G.P_CARDS[G.GAME.current_round.graffiti_drip.save_fields.card].suit]
-        )
-          or G.C.UI.TEXT_INACTIVE
-        }      
-      } }
+      --   or localize(G.P_CARDS[G.GAME.current_round.graffiti_drip.save_fields.card].value, 'ranks') .. " of " .. localize(G.P_CARDS[G.GAME.current_round.graffiti_drip.save_fields.card].suit, 'suits_plural')
+            
+      -- )
+      --   or "None",
+      --   colours = {
+      --     G.GAME.current_round.graffiti_drip and(
+      --     G.GAME.current_round.graffiti_drip.ability.effect == 'Stone Card' and G.C.UI.TEXT_DARK
+      --     or G.C.SUITS[G.P_CARDS[G.GAME.current_round.graffiti_drip.save_fields.card].suit]
+      --   )
+      --     or G.C.UI.TEXT_INACTIVE
+      --   }      
+      }
+    }
     end,
     calculate = function(self, card, context)
   
 
-      if (not context.blueprint_card and context.using_consumeable and context.consumeable.ability.effect == "Suit Conversion") then
+      if (context.using_consumeable and context.consumeable.ability.consumeable.suit_conv) then
 
-        local last_card = G.hand.highlighted[#G.hand.highlighted]
+        -- local last_card = G.hand.highlighted[#G.hand.highlighted]
+
+        local affected_cards = {}
+
+
+        for k, v in pairs(G.hand.highlighted) do
+          if v.base.suit ~= context.consumeable.ability.consumeable.suit_conv and v.config.center ~= G.P_CENTERS.m_stone then
+            affected_cards[#affected_cards+1] = v
+          end
+        end
+
+        if (affected_cards[1]) then
+
+        local random_card = pseudorandom_element(affected_cards, pseudoseed('graffiti_cad'))
 
         G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4,
         func = function()
-          G.GAME.current_round.graffiti_drip = last_card:save()
+          -- G.GAME.current_round.graffiti_drip = last_card:save()
+
+                      
+            local _card = copy_card(random_card, nil, nil, G.playing_card)
+            _card:add_to_deck()
+            G.deck.config.card_limit = G.deck.config.card_limit + 1
+            table.insert(G.playing_cards, _card)
+            G.deck:emplace(_card)
+            
+            
+            
             return true; end})) 
-
-
+            
+            return {
+              message = localize('k_copied_ex'),
+              colour = (
+                G.C.SUITS[context.consumeable.ability.consumeable.suit_conv]
+              ),
+              card = random_card,
+              playing_cards_created = {true}
+            }
+          end
       end
 
       
-      if context.ending_shop then
-        if G.GAME.current_round.graffiti_drip then
-        G.playing_card = (G.playing_card and G.playing_card + 1) or 1
+      -- if context.ending_shop then
+      --   if G.GAME.current_round.graffiti_drip then
+      --   G.playing_card = (G.playing_card and G.playing_card + 1) or 1
         
-        local temp_card = Card((context.blueprint_card or card).T.x, (context.blueprint_card or card).T.y, G.CARD_W, G.CARD_H, G.P_CENTERS.j_joker, G.P_CENTERS.c_base)
-        temp_card:load(G.GAME.current_round.graffiti_drip)
+      --   local temp_card = Card((context.blueprint_card or card).T.x, (context.blueprint_card or card).T.y, G.CARD_W, G.CARD_H, G.P_CENTERS.j_joker, G.P_CENTERS.c_base)
+      --   temp_card:load(G.GAME.current_round.graffiti_drip)
         
         
-        local _card = copy_card(temp_card, nil, nil, G.playing_card)
-        _card:add_to_deck()
-        G.deck.config.card_limit = G.deck.config.card_limit + 1
-        table.insert(G.playing_cards, _card)
-        G.deck:emplace(_card)
+      --   local _card = copy_card(temp_card, nil, nil, G.playing_card)
+      --   _card:add_to_deck()
+      --   G.deck.config.card_limit = G.deck.config.card_limit + 1
+      --   table.insert(G.playing_cards, _card)
+      --   G.deck:emplace(_card)
         
-        temp_card:remove()
-        temp_card = nil
+      --   temp_card:remove()
+      --   temp_card = nil
         
-        G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.5, func = function()
-          G.GAME.current_round.graffiti_drip = nil
-          return true end }))
+      --   G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.5, func = function()
+      --     G.GAME.current_round.graffiti_drip = nil
+      --     return true end }))
         
-        return {
-          message = localize('k_copied_ex'),
-          colour = (
-            G.GAME.current_round.graffiti_drip and(
-            G.GAME.current_round.graffiti_drip.ability.effect == 'Stone Card' and G.C.UI.TEXT_DARK
-            or G.C.SUITS[G.P_CARDS[G.GAME.current_round.graffiti_drip.save_fields.card].suit]
-            )
-            or G.C.UI.TEXT_INACTIVE
-          ),
-          card = context.blueprint_card or card,
-          playing_cards_created = {true}
-        }
-      end
-      end
+      --   return {
+      --     message = localize('k_copied_ex'),
+      --     colour = (
+      --       G.GAME.current_round.graffiti_drip and(
+      --       G.GAME.current_round.graffiti_drip.ability.effect == 'Stone Card' and G.C.UI.TEXT_DARK
+      --       or G.C.SUITS[G.P_CARDS[G.GAME.current_round.graffiti_drip.save_fields.card].suit]
+      --       )
+      --       or G.C.UI.TEXT_INACTIVE
+      --     ),
+      --     card = context.blueprint_card or card,
+      --     playing_cards_created = {true}
+      --   }
+      -- end
+      -- end
       end
   }
 
   web_search_refresh = function(new_blind)
 
-    local banned_hands = (G.GAME.modifiers.clear_history and {
+    local banned_hands = ({
       ["Flush Five"] = true,
       ["Flush House"] = true,
       ["Five of a Kind"] = true,
       ["Straight Flush"] = true,
-    } ) or {}
+      ["Four of a Kind"] = true,
+    } )
 
-    
     local _poker_hands = {}
     for k, v in pairs(G.GAME.hands) do
       
-      if v.visible and not (banned_hands[k]) then
+      if v.played > 0 or not (banned_hands[k] or not v.visible) then
       
         if G.GAME.modifiers.incognito then
         
@@ -1264,7 +1364,10 @@ end
     pos = {x = 17, y = 3},
     cost = 7,
     loc_vars = function(self, info_queue, card)
-      return { vars= {card.ability.extra.step,G.GAME.current_round.web_search_hand,card.ability.xmult} }
+      return { vars= {
+        card.ability.extra.step,
+        localize(G.GAME.current_round.web_search_hand,'poker_hands'),
+        card.ability.xmult} }
     end,
     calculate = function(self, card, context)
       if context.end_of_round and not context.blueprint_card and not context.repetition and context.game_over == false then
@@ -1318,7 +1421,11 @@ end
     pos = {x = 13, y = 2},
     cost = 7,
     loc_vars = function(self, info_queue, card)
-      return { vars= {card.ability.extra.x_mult_mod, card.ability.x_mult, G.GAME.current_round.encounter_card.rank, G.GAME.current_round.encounter_card.suit,
+      return { vars= {
+        card.ability.extra.x_mult_mod,
+        card.ability.x_mult,
+        localize(G.GAME.current_round.encounter_card.rank, 'ranks'),
+        localize(G.GAME.current_round.encounter_card.suit, 'suits_plural'),
       colours = {G.C.SUITS[G.GAME.current_round.encounter_card.suit]}
     } }
     end,
@@ -1388,7 +1495,7 @@ end
     unlocked = false,
     discovered = false,
     pos = {x = 0, y = 3},
-    cost = 8,
+    cost = 10,
     loc_vars = function(self, info_queue, card)
       return { vars= {G.GAME.probabilities.normal, card.ability.extra.chance} }
     end,
@@ -1472,7 +1579,7 @@ end
       "at least {E:1,C:attention}3{} consecutive times"
     }
     },
-    config = { extra = 20, max_retrigger = 5 },
+    config = { every_step = 20, max_retrigger = 5 },
     rarity = 3,
     atlas = "korczak",
     blueprint_compat = true,
@@ -1485,14 +1592,14 @@ end
     discovered = false,
     cost = 10,
     loc_vars = function(self, info_queue, card)
-      return { vars= {card.ability.extra, card.ability.max_retrigger} }
+      return { vars= {card.ability.every_step, card.ability.max_retrigger} }
     end,
     calculate = function(self, card, context)
   
       
       if context.repetition then
         if context.cardarea == G.play then
-          local frames = math.floor(G.GAME.dollars/card.ability.extra)
+          local frames = math.floor(G.GAME.dollars/card.ability.every_step)
           local my_frames = 0
           while(frames > 0) do
             for i = 1, #context.scoring_hand do
@@ -1570,7 +1677,7 @@ G.localization.descriptions.Tarot.c_hermit.text[1] = "#2#"
   unlocked = false,
   discovered = false,
   unlock_condition = {extra = 50},
-    rarity = 3,
+    rarity = 2,
     atlas = "korczak",
     blueprint_compat = false,
     pos = {x = 14, y = 2},
@@ -1589,77 +1696,112 @@ G.localization.descriptions.Tarot.c_hermit.text[1] = "#2#"
       name = 'X Marks the Joke',
       text=
       {
-        "Gains {C:white,X:mult}X#1#{} Mult when",
-        "playing most played {C:attention}poker hand",
-        "Loses {C:white,X:mult}X#2#{} Mult when",
-        "not playing most played {C:attention}poker hand",
-        "{C:inactive}(Currently {C:white,X:mult}X#3#{C:inactive} Mult)"
+        -- "Gains {C:white,X:mult}X#1#{} Mult when",
+        -- "playing most played {C:attention}poker hand",
+        -- "Loses {C:white,X:mult}X#2#{} Mult when",
+        -- "not playing most played {C:attention}poker hand",
+        -- "{C:inactive}(Currently {C:white,X:mult}X#3#{C:inactive} Mult)"
+
+        "Earn {C:money}$#1#{} for each {C:attention}secret rank{}",
+        "contained in scored hand",
+        "earnings increase by {C:money}$#2#{} for each",
+        "additional {C:attention}secret rank{} in hand",
+        "{C:inactive}(secret rank changes every Ante)"
     },
     unlock = {
-      "Play all initial",
-      "poker hands in one run"
+      "Discard {C:attention,E:1}#1# Gold cards",
+      "in a single discard"
     }
     },
-    config = { extra = {step_up = 0.2, step_down = 0.2}, x_mult = 1 },
-    rarity = 3,
+    
+    -- config = { extra = {step_up = 0.2, step_down = 0.2}, x_mult = 1 },
+    config = { extra = {earn_raise = 1, earn = 2}},
+    rarity = 2,
     atlas = "korczak",
     blueprint_compat = true,
     perishable_compat = false,
     unlocked = false,
     discovered = false,
     pos = {x = 12, y = 4},
-    cost = 8,
+    unlock_condition = {extra = 4},
+    cost = 6,
     loc_vars = function(self, info_queue, card)
-      return { vars= {card.ability.extra.step_up,card.ability.extra.step_down,card.ability.x_mult} }
+      -- return { vars= {card.ability.extra.step_up,card.ability.extra.step_down,card.ability.x_mult} }
+      return { vars= {card.ability.extra.earn,card.ability.extra.earn_raise} }
+    end,
+    locked_loc_vars = function(self, info_queue, card)
+      return { vars= {self.unlock_condition.extra} }
     end,
     calculate = function(self, card, context)
-      if context.before and not context.blueprint_card then
+      if context.before then
 
-
-        local upgrading = true
-        local play_more_than = (G.GAME.hands[context.scoring_name].played or 0)
-        for k, v in pairs(G.GAME.hands) do
-            if k ~= context.scoring_name and v.played >= play_more_than and v.visible then
-                upgrading = false
-            end
-        end
-        if upgrading then
-
-          card.ability.x_mult = card.ability.x_mult + card.ability.extra.step_up
-          return {
-              card = card,
-              colour = G.C.RED,
-              message = localize{type='variable',key='a_xmult',vars={card.ability.extra.step_up}}
-          }
-
-        else
-            
-          local prev_mult = card.ability.x_mult
-          card.ability.x_mult = math.max(1, card.ability.x_mult - card.ability.extra.step_down)
-          if card.ability.x_mult ~= prev_mult then 
-              return {
-                  card = card,
-                  message = localize{type='variable',key='a_xmult_minus',vars={card.ability.extra.step_down}},
-                  colour = G.C.RED
-              }
+        local bonus = 0
+        local gain = card.ability.extra.earn
+        
+        for i = 1, #context.scoring_hand do
+          if context.scoring_hand[i]:get_id() == G.GAME.current_round.xmarks_card.id and (not context.other_card.debuff) then
+            bonus = bonus + gain
+            gain = gain + card.ability.extra.earn_raise
           end
+      end
 
-        end
+      if(bonus > 0) then
+        return({
+          dollars = bonus,
+          card = context.blueprint_card or card,
+          colour = G.C.MONEY
+        })
+      end
 
       end
+      -- if context.before and not context.blueprint_card then
+
+
+      --   local upgrading = true
+      --   local play_more_than = (G.GAME.hands[context.scoring_name].played or 0)
+      --   for k, v in pairs(G.GAME.hands) do
+      --       if k ~= context.scoring_name and v.played >= play_more_than and v.visible then
+      --           upgrading = false
+      --       end
+      --   end
+      --   if upgrading then
+
+      --     card.ability.x_mult = card.ability.x_mult + card.ability.extra.step_up
+      --     return {
+      --         card = card,
+      --         colour = G.C.RED,
+      --         message = localize{type='variable',key='a_xmult',vars={card.ability.extra.step_up}}
+      --     }
+
+      --   else
+            
+      --     local prev_mult = card.ability.x_mult
+      --     card.ability.x_mult = math.max(1, card.ability.x_mult - card.ability.extra.step_down)
+      --     if card.ability.x_mult ~= prev_mult then 
+      --         return {
+      --             card = card,
+      --             message = localize{type='variable',key='a_xmult_minus',vars={card.ability.extra.step_down}},
+      --             colour = G.C.RED
+      --         }
+      --     end
+
+      --   end
+
+      -- end
+      
     end,
     check_for_unlock = function(self, args)
-      if args.type == 'hand' then
-        local flag = true
-        for k, v in pairs(G.GAME.hands) do
-          if v.visible and v.played == 0 then 
-            flag = false
-          end 
-        end
-
-        if(flag) then
-          unlock_card(self)
-        end
+      if args.type == 'discard_custom' then
+            local tally = 0
+            for j = 1, #args.cards do
+                if args.cards[j].ability.effect == 'Gold Card' then
+                    tally = tally+1
+                end
+            end
+            if tally >= self.unlock_condition.extra then 
+                ret = true
+                unlock_card(self)
+            end
       end
     end
   }
@@ -1871,9 +2013,14 @@ G.localization.descriptions.Tarot.c_hermit.text[1] = "#2#"
         -- "(rank changes when triggered)",
         -- "{C:inactive}(Currently {C:attention}#1#{C:inactive}/#2#)"
 
-        "{C:green}#1# in #2#{} chance to add a random {C:attention}Ace{}",
+        -- "{C:green}#1# in #2#{} chance to add a random {C:attention}Ace{}",
+        -- "with an {C:attention}Enhancement{} or {C:dark_edition}Edition{}",
+        -- "to your deck when opening a {C:attention}Standard Pack"
+
+        "Adds a random {C:attention}Ace{}",
         "with an {C:attention}Enhancement{} or {C:dark_edition}Edition{}",
-        "to your deck when opening a {C:attention}Standard Pack"
+        "to your deck when choosing",
+        "a card from a {C:attention}Standard Pack"
     },
     unlock = {
     "Defeat the Ante #3# Boss Blind with",
@@ -1907,13 +2054,16 @@ G.localization.descriptions.Tarot.c_hermit.text[1] = "#2#"
     cost = 8,
     loc_vars = function(self, info_queue, card)
       -- return { vars= {math.min( card.ability.other_rank_count,card.ability.other_rank_need), card.ability.other_rank_need, G.GAME.current_round.auys_card.rank} }
-      return { vars= {G.GAME.probabilities.normal, card.ability.extra.chance} }
+      return { vars= {
+        -- G.GAME.probabilities.normal, card.ability.extra.chance
+      } }
     end,
     calculate = function(self, card, context)
   
-      if context.open_booster and context.card.config.center.kind == 'Standard'
-        and (pseudorandom('ace_up_yo_ASS') <= G.GAME.probabilities.normal/card.ability.extra.chance) and
-        not (context.blueprint_card or card).getting_sliced  then
+      if
+      context.booster_card_added
+        -- and (pseudorandom('ace_up_yo_ASS') <= G.GAME.probabilities.normal/card.ability.extra.chance)
+        and not (context.blueprint_card or card).getting_sliced  then
 
         local valid_aces = {}
         local cen_pool = {}
@@ -1956,7 +2106,7 @@ G.localization.descriptions.Tarot.c_hermit.text[1] = "#2#"
                 end
                 return true
             end}))
-            card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = (is_edition and G.P_CENTERS[edition].name) or (enhancement.label), colour = G.C.SECONDARY_SET.Enhanced})
+            card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = (is_edition and G.localization.descriptions.Edition[edition].name) or ((G.localization.descriptions.Enhanced[enhancement.name] or {name = enhancement.name}).name), colour = G.C.SECONDARY_SET.Enhanced})
 
         G.E_MANAGER:add_event(Event({
             func = function() 
@@ -2059,22 +2209,24 @@ G.localization.descriptions.Tarot.c_hermit.text[1] = "#2#"
     --   end
   }
 
-  auys_refresh = function()
-    -- new auys rank
-    G.GAME.current_round.auys_card = {rank = 'King'}
-    local valid_auys_cards = {}
-    for k, v in ipairs(G.playing_cards) do
-        if v.ability.effect ~= 'Stone Card' and v.base.id ~= 14 then
-          valid_auys_cards[#valid_auys_cards+1] = v
-        end
-    end
-    if valid_auys_cards[1] then 
-        local auys_card = pseudorandom_element(valid_auys_cards, pseudoseed('comic_boko'..G.GAME.round_resets.ante))
-        G.GAME.current_round.auys_card.rank = auys_card.base.value
-        G.GAME.current_round.auys_card.id = auys_card.base.id
-    end
+  -- auys_refresh = function()
+  --   -- new auys rank
+  --   G.GAME.current_round.auys_card = {rank = 'King'}
+  --   local valid_auys_cards = {}
+  --   for k, v in ipairs(G.playing_cards) do
+  --       if v.ability.effect ~= 'Stone Card' and v.base.id ~= 14 then
+  --         if v.base.id > 0 then
+  --         valid_auys_cards[#valid_auys_cards+1] = v
+  --         end
+  --       end
+  --   end
+  --   if valid_auys_cards[1] then 
+  --       local auys_card = pseudorandom_element(valid_auys_cards, pseudoseed('comic_boko'..G.GAME.round_resets.ante))
+  --       G.GAME.current_round.auys_card.rank = auys_card.base.value
+  --       G.GAME.current_round.auys_card.id = auys_card.base.id
+  --   end
     
-  end
+  -- end
 
   
   
@@ -2448,7 +2600,7 @@ end
       return(planets_used>0)
     end,
     config = { extra = 1 },
-    rarity = 2,
+    rarity = 1,
     atlas = "korczak",
     blueprint_compat = true,
     pos = {x = 10, y = 0},
@@ -2584,7 +2736,7 @@ end
     },
     },
     config = { extra = {chance = 4, mult_mod = 1}, mult = 5 },
-    rarity = 3,
+    rarity = 2,
     atlas = "korczak",
     blueprint_compat = true,
     pos = {x = 6, y = 0},
@@ -2631,15 +2783,15 @@ end
       name = 'Harlequin',
       text=
       {
-        "{C:green}#1# in #2#{} chance for every",
-        "scoring card to give {C:white,X:mult}X#3#{} Mult"
+        "Each {C:attention}Gold{} card in hand",
+        "gives {C:white,X:mult}X#3#{} Mult"
       },
       unlock={
         "Find this Joker",
         "from the {C:spectral}Soul{} card",
       }
     },
-    config = { extra = {xmult = 2, chance = 2} },
+    config = { extra = {xmult = 2} },
     rarity = 4,
     atlas = "korczak",
     blueprint_compat = true,
@@ -2654,12 +2806,12 @@ end
     end,
     calculate = function(self, card, context)
   
-      if context.individual and context.cardarea == G.play then
+      if context.individual and context.cardarea == G.hand and not context.end_of_round then
 
-        if (pseudorandom('harlequin') <= G.GAME.probabilities.normal/card.ability.extra.chance) then
+        if (context.other_card.ability.effect == 'Gold Card' and not context.other_card.debuff) then
           return {
             x_mult = card.ability.extra.xmult,
-            card = card
+            card = context.other_card
         }
         end
 
@@ -2683,7 +2835,7 @@ end
   G.localization.misc.v_text['ch_c_always_the_eye'] = {"{E:1}Can't play repeat hand types in any Blind{}"}
   G.localization.misc.v_text['ch_c_blind_scaling'] = {"Antes scale {C:red}#1#{} times as fast"}
   G.localization.misc.v_text['ch_c_incognito'] = {"{C:attention}Web Search{} can’t choose poker hands already played in Blind"}
-  G.localization.misc.v_text['ch_c_clear_history'] = {"{C:attention}Web Search{} can’t choose certain poker hands"}
+  -- G.localization.misc.v_text['ch_c_clear_history'] = {"{C:attention}Web Search{} can’t choose certain poker hands"}
   G.localization.misc.v_text['ch_c_spectral_shop'] = {"{C:spectral}Spectral{} cards can appear in shop"}
   G.localization.misc.v_text['ch_c_booster_slots'] = {"Every shop has {C:attention}#1#{} Booster Packs"}
   G.localization.misc.v_text['ch_c_jimbo_debt'] = {"{C:red}Lose{} {C:money}$#1#{} when {C:attention}Boss Blind{} is defeated"}
@@ -3180,7 +3332,7 @@ end
         custom = {
           {id = "always_the_eye"},
           {id = "incognito"},
-          {id = "clear_history"}
+          -- {id = "clear_history"}
         },
         modifiers = {
         }
@@ -3188,8 +3340,6 @@ end
     restrictions = {
       banned_cards =  {
         {id = 'j_obelisk'},
-        {id = 'j_korczak_x_marks_the_joke'},
-
       },
       banned_tags = {
       },
