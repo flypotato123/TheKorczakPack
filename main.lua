@@ -125,11 +125,11 @@ end
         
         for k,v in pairs(G.P_CENTERS) do
 
-          if v.set == 'Voucher' then
+          -- if v.set == 'Voucher' then
 
-            sendDebugMessage(tprint(v))
+          --   sendDebugMessage(tprint(v))
 
-          end
+          -- end
 
           if v.mod and v.mod.id ~= "KorczakPack" then
             G.GAME.banned_keys[k] = true
